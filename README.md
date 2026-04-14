@@ -1,32 +1,5 @@
 # Zero-to-Azure Secure Cloud Baseline + Cloud Operations Lab
-
-This repo **starts from zero**. It does **not** assume you already built the Secure Cloud Baseline Lab.
-
-You will build the project in **two phases**:
-
-1. **Secure Cloud Baseline Lab**
-   - remote Terraform state
-   - sandbox and prod-style environment roots
-   - nested Terraform modules
-   - Azure Policy initiative for baseline guardrails
-   - Log Analytics, Activity Log alerts, Action Group, and budget
-   - Azure DevOps pipeline with validate, plan, and approval-gated apply
-   - repo governance checklist and exception register template
-
-2. **Cloud Operations Extension**
-   - Azure Automation account
-   - PowerShell runbooks for tag healing and orphan detection
-   - scheduled hygiene jobs
-   - demo failure modes you can show in interview
-
-If you stop after Phase 1, you still have a credible **Secure Cloud Baseline Lab**.  
-If you continue to Phase 2, you have the stronger **Bupa-aligned cloud operations demo**.
-
-## Why this lab is a good fit
-
-The Bupa role explicitly asks for everything-as-code, Azure DevOps, PowerShell, Terraform, Azure Automation, alerting, logging, cost control, measurement, tag healing, change detection, optimisation, and garbage collection. Your resume and cover letter also position you around Azure, Terraform, policy, and pipeline-driven cloud governance. This lab lets you back that up with something you can actually show and discuss.
-
-## What you will end up with
+## What this lab creates
 
 ### Phase 1: Secure Cloud Baseline
 - `sandbox` and `prod` environment roots
@@ -118,12 +91,6 @@ bupa-zero-to-cloud-ops-lab/
 - an Azure DevOps project and repo
 - rights to deploy subscription-scope policy assignments
 - an email address for alerts and budget notifications
-
-## Recommended timeline
-
-- **Night 1:** build Phase 1 in `sandbox`
-- **Night 2:** add Azure DevOps pipeline, repo controls, and capture screenshots
-- **Night 3:** switch on Phase 2, seed demo resources, run runbooks, and rehearse
 
 ## Phase 0 - Create remote Terraform state
 
@@ -229,7 +196,6 @@ terraform plan -var-file=terraform.tfvars
 ```
 
 You can stop at **plan** if you do not want a second environment deployed.  
-In interview, that is still enough to discuss sandbox vs prod differences: audit-first in sandbox, stronger enforcement in prod.
 
 ## Phase 1.5 - Add pipeline and repo controls
 
@@ -387,65 +353,3 @@ policy_effect = "Deny"
 ```
 
 Then run another `plan` and `apply`.
-
-This gives you a very strong talking point:
-> I started in audit mode to understand blast radius and reduce team friction, then moved to deny once the baseline and remediation path were proven.
-
-## What to demo in interview
-
-Use `docs/demo-script.md`.
-
-The best 8-minute demo flow is:
-
-1. show the repo structure
-2. show sandbox and prod-style environment roots
-3. show the policy initiative and explain audit vs deny
-4. show the Azure DevOps pipeline
-5. show a resource before and after tag healing
-6. show orphan detection output
-7. show budget and Activity Log alerts
-8. close with what you would do next in a real platform team
-
-## What to say this project demonstrates
-
-Use `docs/interview-bridge-notes.md`.
-
-The short version:
-
-- **Terraform + remote state** -> everything as code
-- **sandbox/prod roots** -> safe promotion model
-- **Azure Policy** -> compliance and governance through code
-- **Azure DevOps pipeline** -> CI/CD and approval-gated change
-- **Log Analytics + alerts + budget** -> measurement and cloud economics
-- **Automation runbooks** -> PowerShell and Azure Automation
-- **TagHeal + orphan detection** -> tag healing, hygiene, and garbage collection
-
-## Files to read first
-
-If you want the quickest path:
-
-1. `docs/phase-1-secure-cloud-baseline-only.md`
-2. `docs/repo-controls-checklist.md`
-3. `docs/demo-script.md`
-4. `docs/practice-questions.md`
-
-## Honest notes
-
-- This repo is designed as a **practical starter**. AzureRM provider arguments occasionally vary by version, so keep the architecture exactly as-is and adjust any small syntax differences to the provider version you install.
-- The lab uses **Contributor** on the subscription for the automation account to keep the demo simple. In a real environment, narrow that with least privilege and scope boundaries.
-- You do **not** need to finish every optional step to discuss this confidently. A clean sandbox deployment plus one working runbook is already enough to talk through design choices and trade-offs.
-
-## Your minimum viable finish line
-
-If time gets tight, complete this:
-
-1. sandbox baseline deployed
-2. Azure DevOps pipeline created
-3. policy initiative assigned in audit mode
-4. ops extension enabled in sandbox
-5. tag healing runbook demonstrated
-6. orphan detection runbook demonstrated
-7. screenshots captured
-8. demo rehearsed twice
-
-That is enough to speak credibly and directly about the role.
