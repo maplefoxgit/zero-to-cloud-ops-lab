@@ -1,0 +1,161 @@
+parameters:
+  - name: environmentName
+    displayName: Environment
+    type: string
+    default: sandbox
+    values:
+      - sandbox
+      - prod
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  - group: cloud-platform-lab
+  - name: tfVersion
+    value: "1.6.6"
+  - name: workingDirectory
+    value: environments/${{ parameters.environmentName }}
+  - name: tfStateKey
+    value: bupa-lab/${{ parameters.environmentName }}.tfstate
+
+stages:
+  - stage: Validate
+    displayName: Validate
+    jobs:
+      - job: validate
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: $(tfVersion)
+
+          - script: terraform fmt -check -recursive
+            workingDirectory: $(workingDirectory)
+            displayName: Terraform fmt check
+
+          - script: |
+              terraform init \
+                -backend-config="resource_group_name=$(TFSTATE_RG)" \
+                -backend-config="storage_account_name=$(TFSTATE_SA)" \
+                -backend-config="container_name=$(TFSTATE_CONTAINER)" \
+                -backend-config="key=$(tfStateKey)"
+            workingDirectory: $(workingDirectory)
+            displayName: Terraform init
+            env:
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+          - script: terraform validate
+            workingDirectory: $(workingDirectory)
+            displayName: Terraform validate
+            env:
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+  - stage: Plan
+    displayName: Plan
+    dependsOn: Validate
+    jobs:
+      - job: plan
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: $(tfVersion)
+
+          - script: |
+              terraform init \
+                -backend-config="resource_group_name=$(TFSTATE_RG)" \
+                -backend-config="storage_account_name=$(TFSTATE_SA)" \
+                -backend-config="container_name=$(TFSTATE_CONTAINER)" \
+                -backend-config="key=$(tfStateKey)"
+            workingDirectory: $(workingDirectory)
+            displayName: Terraform init
+            env:
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+          - script: |
+              terraform plan \
+                -var="alert_email_address=$(ALERT_EMAIL)" \
+                -var="budget_contact_email=$(BUDGET_CONTACT_EMAIL)" \
+                -out=tfplan
+            workingDirectory: $(workingDirectory)
+            displayName: Terraform plan
+            env:
+              ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+              ARM_TENANT_ID: $(ARM_TENANT_ID)
+              ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+              ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+          - publish: $(workingDirectory)/tfplan
+            artifact: tfplan-${{ parameters.environmentName }}
+            displayName: Publish plan
+
+  - stage: Apply
+    displayName: Apply
+    dependsOn: Plan
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: apply
+        displayName: Terraform apply
+        environment: cloud-platform-${{ parameters.environmentName }}
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: $(tfVersion)
+
+                - download: current
+                  artifact: tfplan-${{ parameters.environmentName }}
+
+                - script: |
+                    cp "$(Pipeline.Workspace)/tfplan-${{ parameters.environmentName }}/tfplan" "$(workingDirectory)/tfplan"
+                  displayName: Restore plan file
+
+                - script: |
+                    terraform init \
+                      -backend-config="resource_group_name=$(TFSTATE_RG)" \
+                      -backend-config="storage_account_name=$(TFSTATE_SA)" \
+                      -backend-config="container_name=$(TFSTATE_CONTAINER)" \
+                      -backend-config="key=$(tfStateKey)"
+                  workingDirectory: $(workingDirectory)
+                  displayName: Terraform init
+                  env:
+                    ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+                    ARM_TENANT_ID: $(ARM_TENANT_ID)
+                    ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+                    ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
+
+                - script: terraform apply -auto-approve tfplan
+                  workingDirectory: $(workingDirectory)
+                  displayName: Terraform apply
+                  env:
+                    ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+                    ARM_TENANT_ID: $(ARM_TENANT_ID)
+                    ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+                    ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)

@@ -1,0 +1,21 @@
+{
+  "listOfAllowedLocations": {
+    "type": "Array",
+    "metadata": {
+      "displayName": "Allowed locations",
+      "description": "The list of Azure regions resources are allowed to use."
+    }
+  },
+  "effect": {
+    "type": "String",
+    "metadata": {
+      "displayName": "Effect"
+    },
+    "allowedValues": [
+      "Audit",
+      "Deny",
+      "Disabled"
+    ],
+    "defaultValue": "Audit"
+  }
+}
